@@ -1,27 +1,29 @@
-from parser.pdf_reader import read_pdf_pages
-from parser.table_extractor import extract_tables_from_page
-from parser.transaction_parser import rows_to_transactions
-from parser.analyzer import analyze_transactions
+import os
+import pandas as pd
+from core.engine import process_pdf
 
-PDF_PATH = "uploads/test.pdf"
 
 if __name__ == "__main__":
-    all_rows = []
 
-    for page_no, page in read_pdf_pages(PDF_PATH):
-        rows = extract_tables_from_page(page)
-        all_rows.extend(rows)
+    BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
-    transactions = rows_to_transactions(all_rows)
-    result = analyze_transactions(transactions)
+    PDF_NAME = "test.pdf"  # change for testing
 
-    print("\n--- SUMMARY ---")
-    print(result["summary"])
+    PDF_PATH = os.path.join(BASE_DIR, "test_pdfs", PDF_NAME)
 
-    print("\n--- FIRST 3 CREDIT TRANSACTIONS ---")
-    for txn in result["credit_transactions"][:3]:
-        print(txn)
+    result = process_pdf(PDF_PATH)
 
-    print("\n--- FIRST 3 DEBIT TRANSACTIONS ---")
-    for txn in result["debit_transactions"][:3]:
-        print(txn)
+    OUTPUT_DIR = os.path.join(BASE_DIR, "output")
+    os.makedirs(OUTPUT_DIR, exist_ok=True)
+
+    output_path = os.path.join(
+        OUTPUT_DIR,
+        PDF_NAME.replace(".pdf", "_transactions.xlsx")
+    )
+
+    df = pd.DataFrame(result["transactions"])
+    df.to_excel(output_path, index=False)
+
+    print("Detected Bank:", result["bank"])
+    print("Transactions:", len(df))
+    print("Saved to:", output_path)
